@@ -35,6 +35,31 @@ jobs:
     needs: build-client
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        run: |
+          rustup update stable
+          rustup target add aarch64-unknown-linux-gnu
+
+      - name: Install cross
+        run: |
+          cargo install cross
+
+      - name: Cross Compile
+        working-directory: ./server
+        run: |
+          cross build --release --target aarch64-unknown-linux-gnu
+
+      - name: Zip Target
+        working-directory: ./server
+        run: |
+          mkdir dist
+          cp target/aarch64-unknown-linux-gnu/release/tetris-server dist
+          cp Settings.toml dist
+          zip -r dist.zip dist/
+
       - name: Get Github Actions IP
         id: ip
         uses: haythem/public-ip@v1.2
@@ -50,6 +75,16 @@ jobs:
         run: |
           aws ec2 authorize-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
 
+      - name: Upload to EC2
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.AWS_SSH_HOST }}
+          username: ${{ secrets.AWS_SSH_USERNAME }}
+          key: ${{ secrets.AWS_SSH_KEY }}
+          port: ${{ secrets.AWS_SSH_PORT }}
+          source: "./server/dist.zip"
+          target: "~/tetris"
+
       - name: SSH Commands
         uses: appleboy/ssh-action@v0.1.6
         with:
@@ -59,29 +94,19 @@ jobs:
           port: ${{ secrets.AWS_SSH_PORT }}
           script_stop: true
           script: |
-            echo "hi" >> test.txt
+            cd ~/tetris
+            unzip -o dist.zip
+
+            cd dist
+
+            sudo kill -9 $(sudo lsof -t -i :4000)
+
+            chmod +x tetris-server
+            ./tetris-server
 
       - name: Remove Github Actions IP From Security Group
         run: |
           aws ec2 revoke-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
-
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Install Rust
-        run: |
-          rustup update stable
-          rustup target add aarch64-unknown-linux-gnu
-
-      - name: Install linker
-        run: |
-          sudo apt update
-          sudo apt install -y gcc-aarch64-linux-gnu
-
-      - name: Build Rust (aarch64)
-        working-directory: ./server
-        run: |
-          cargo build --release --target aarch64-unknown-linux-gnu
 
     #   - name: Upload to EC2
     #     env:
