@@ -94,7 +94,7 @@ jobs:
           port: ${{ secrets.AWS_SSH_PORT }}
           script_stop: true
           script: |
-            cd ~/tetris
+            cd ~/tetris/server
             unzip -o dist.zip
 
             cd dist
@@ -102,7 +102,7 @@ jobs:
             sudo kill -9 $(sudo lsof -t -i :4000)
 
             chmod +x tetris-server
-            ./tetris-server
+            nohup ./tetris-server > log.txt 2>&1 &
 
       - name: Remove Github Actions IP From Security Group
         run: |
