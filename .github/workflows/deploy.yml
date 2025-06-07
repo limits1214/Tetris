@@ -114,7 +114,7 @@ jobs:
 
             echo "start server"
             chmod +x tetris-server
-            nohup ./tetris-server &
+            nohup ./tetris-server > /dev/null 2>&1 &
 
             echo "end"
 
