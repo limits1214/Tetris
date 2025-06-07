@@ -43,47 +43,47 @@ jobs:
           rustup update stable
         #   rustup target add aarch64-unknown-linux-gnu
 
-      - name: Install cross
-        run: |
-          cargo install cross
+      #   - name: Install cross
+      #     run: |
+      #       cargo install cross
 
-      - name: Cross Compile
-        working-directory: ./server
-        run: |
-          cross build --release --target aarch64-unknown-linux-gnu
+      #   - name: Cross Compile
+      #     working-directory: ./server
+      #     run: |
+      #       cross build --release --target aarch64-unknown-linux-gnu
 
-      - name: Zip Target
-        working-directory: ./server
-        run: |
-          mkdir dist
-          cp target/aarch64-unknown-linux-gnu/release/tetris-server dist
-          cp Settings.toml dist
-          zip -r dist.zip dist/
+      #   - name: Zip Target
+      #     working-directory: ./server
+      #     run: |
+      #       mkdir dist
+      #       cp target/aarch64-unknown-linux-gnu/release/tetris-server dist
+      #       cp Settings.toml dist
+      #       zip -r dist.zip dist/
 
-      - name: Get Github Actions IP
-        id: ip
-        uses: haythem/public-ip@v1.2
+      #   - name: Get Github Actions IP
+      #     id: ip
+      #     uses: haythem/public-ip@v1.2
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
+      #   - name: Configure AWS Credentials
+      #     uses: aws-actions/configure-aws-credentials@v1
+      #     with:
+      #       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #       aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #       aws-region: ap-northeast-2
 
-      - name: Add Github Actions IP to Security group
-        run: |
-          aws ec2 authorize-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
+      #   - name: Add Github Actions IP to Security group
+      #     run: |
+      #       aws ec2 authorize-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
 
-      - name: Upload to EC2
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.AWS_SSH_HOST }}
-          username: ${{ secrets.AWS_SSH_USERNAME }}
-          key: ${{ secrets.AWS_SSH_KEY }}
-          port: ${{ secrets.AWS_SSH_PORT }}
-          source: "./server/dist.zip"
-          target: "~/tetris"
+      #   - name: Upload to EC2
+      #     uses: appleboy/scp-action@v0.1.4
+      #     with:
+      #       host: ${{ secrets.AWS_SSH_HOST }}
+      #       username: ${{ secrets.AWS_SSH_USERNAME }}
+      #       key: ${{ secrets.AWS_SSH_KEY }}
+      #       port: ${{ secrets.AWS_SSH_PORT }}
+      #       source: "./server/dist.zip"
+      #       target: "~/tetris"
 
       - name: SSH Commands
         uses: appleboy/ssh-action@v0.1.6
@@ -94,21 +94,28 @@ jobs:
           port: ${{ secrets.AWS_SSH_PORT }}
           script_stop: true
           script: |
+            echo "start"
+
             cd ~/tetris/server
+            echo "unzip dist"
             unzip -o dist.zip
+
+            ls
 
             cd dist
 
+            ls
+
+            echo "kill exists port"
             pid=$(lsof -t -i :4000)
             if [ -n "$pid" ]; then
                 kill -9 $pid
-                echo "Kill port 4000 process pid = $pid"
+                echo "Killed port 4000 process pid = $pid"
             else
                 echo "No process found on port 4000"
             fi
 
             echo "start server"
-
             chmod +x tetris-server
             nohup ./tetris-server > log.txt 2>&1 &
 
