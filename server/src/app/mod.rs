@@ -1,8 +1,12 @@
+use axum::Router;
 use listenfd::ListenFd;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::{app::config::AppConfig, controller::init_router};
+use crate::{
+    app::config::AppConfig, controller::init_controller_router,
+    controller_ws::init_controller_ws_router,
+};
 
 pub mod config;
 pub mod state;
@@ -30,7 +34,11 @@ fn init_tracing() -> WorkerGuard {
 
 async fn init_axum() {
     let listener = init_listenfd(4000).await;
-    let router = init_router().await;
+    let router_controller = init_controller_router().await;
+    let router_controller_ws = init_controller_ws_router().await;
+    let router = Router::new()
+        .merge(router_controller)
+        .merge(router_controller_ws);
     axum::serve(listener, router)
         .with_graceful_shutdown(init_shutdown_signal())
         .await
