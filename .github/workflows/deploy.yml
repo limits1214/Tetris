@@ -86,7 +86,7 @@ jobs:
       #       target: "~/tetris"
 
       - name: SSH Commands
-        uses: appleboy/ssh-action@v0.1.6
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.AWS_SSH_HOST }}
           username: ${{ secrets.AWS_SSH_USERNAME }}
@@ -100,11 +100,7 @@ jobs:
             echo "unzip dist"
             unzip -o dist.zip
 
-            ls
-
             cd dist
-
-            ls
 
             echo "kill exists port"
             pid=$(lsof -t -i :4000)
