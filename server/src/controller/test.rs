@@ -9,6 +9,6 @@ pub fn test_router(_state: ArcAppState) -> Router<ArcAppState> {
 pub async fn greet() -> impl IntoResponse {
     tracing::info!("greet!!");
     Json(json!({
-        "msg": "greet!"
+        "msg": "greet! z"
     }))
 }
