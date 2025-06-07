@@ -102,12 +102,17 @@ jobs:
             pid=$(lsof -t -i :4000)
             if [ -n "$pid" ]; then
                 kill -9 $pid
+                echo "Kill port 4000 process pid = $pid"
             else
                 echo "No process found on port 4000"
             fi
 
+            echo "start server"
+
             chmod +x tetris-server
             nohup ./tetris-server > log.txt 2>&1 &
+
+            echo "end"
 
       - name: Remove Github Actions IP From Security Group
         run: |
